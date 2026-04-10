@@ -785,7 +785,7 @@ select.form-control:not([size]):not([multiple]) {
 /* 3.5 Card */
 .card {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.03);
-    background-color: #16151D;
+    background-color: #16151d;
     border-radius: 3px;
     border: none;
     position: relative;
@@ -1372,11 +1372,32 @@ table tr:hover .table-links {
 }
 
 /* 3.9 Nav */
-.nav-tabs .nav-item .nav-link {
+/* .nav-tabs .nav-item .nav-link {
     color: #6777ef;
-}
-.nav-tabs .nav-item .nav-link.active {
+} */
+/* .nav-tabs .nav-item .nav-link.active {
     color: #000;
+} */
+
+/* --- Saat TAB TIDAK AKTIF --- */
+.nav-tabs .nav-item .nav-link {
+    color: #ffffff; /* Warna teks abu-abu biar lebih kalem */
+    background: #282424; /* Kasih latar abu-abu tipis biar kelihatan kotak */
+    border: none; /* Menghilangkan garis pinggir default */
+    margin-right: 5px; /* Kasih jarak antar tab */
+}
+
+/* --- Saat TAB AKTIF (Sedang dipilih) --- */
+.nav-tabs .nav-item .nav-link.active {
+    color: #fff !important; /* Teks jadi putih bersih */
+    background-color: #6f4e37 !important; /* Latar jadi biru Stisla */
+    border-radius: 5px; /* Sudutnya dibuat membulat */
+}
+
+/* --- Efek saat KURSOR DI ATAS Tab (Hover) --- */
+.nav-tabs .nav-item .nav-link:hover {
+    background-color: #e2e6ea; /* Berubah warna sedikit saat disentuh kursor */
+    color: #555;
 }
 
 .tab-content > .tab-pane {
@@ -1386,7 +1407,7 @@ table tr:hover .table-links {
 
 .tab-bordered .tab-pane {
     padding: 15px;
-    border: 1px solid #ededed;
+    /* border: 1px solid #ededed; */
     margin-top: -1px;
 }
 
@@ -1658,7 +1679,7 @@ h6 .badge {
 
 .btn-secondary,
 .btn-secondary.disabled {
-    box-shadow: 0 2px 6px #e1e5e8;
+    /* box-shadow: 0 2px 6px #e1e5e8; */
     background-color: #cdd3d8;
     border-color: #cdd3d8;
     color: #fff;
@@ -1685,7 +1706,7 @@ h6 .badge {
 
 .btn-success,
 .btn-success.disabled {
-    box-shadow: 0 2px 6px #a8f5b4;
+    /* box-shadow: 0 2px 6px #a8f5b4; */
     background-color: #63ed7a;
     border-color: #63ed7a;
     color: #fff;
@@ -1712,7 +1733,7 @@ h6 .badge {
 
 .btn-danger,
 .btn-danger.disabled {
-    box-shadow: 0 2px 6px #fd9b96;
+    /* box-shadow: 0 2px 6px #fd9b96; */
     background-color: #fc544b;
     border-color: #fc544b;
     color: #fff;
@@ -1795,7 +1816,7 @@ h6 .badge {
 
 .btn-warning,
 .btn-warning.disabled {
-    box-shadow: 0 2px 6px #ffc473;
+    /* box-shadow: 0 2px 6px #ffc473; */
     background-color: #ffa426;
     border-color: #ffa426;
     color: #fff;
@@ -1822,7 +1843,7 @@ h6 .badge {
 
 .btn-info,
 .btn-info.disabled {
-    box-shadow: 0 2px 6px #82d3f8;
+    /* box-shadow: 0 2px 6px #82d3f8; */
     background-color: #3abaf4;
     border-color: #3abaf4;
     color: #fff;
@@ -1849,7 +1870,7 @@ h6 .badge {
 .btn-primary,
 .btn-primary.disabled {
     /* box-shadow: 0 2px 6px #acb5f6; */
-    background-color: #3BA1DA;
+    background-color: #3ba1da;
     border-color: #6777ef;
 }
 .btn-primary:focus,
@@ -3111,7 +3132,7 @@ pre {
     width: 30px;
     background-color: #6777ef;
     display: inline-block;
-    float: left;
+    float: left;sidebar-wrapper
     margin-top: 6px;
     margin-right: 15px;
 } */
@@ -3127,7 +3148,7 @@ pre {
     margin-right: -30px;
     margin-top: -10px;
     border-radius: 0;
-    border-top: 1px solid #f9f9f9;
+    /* border-top: 1px solid #f9f9f9; */
     padding-left: 35px;
     padding-right: 35px;
 }
@@ -3200,7 +3221,7 @@ pre {
     top: 0;
     height: 100%;
     width: 250px;
-    background-color: #fff;
+    background-color: #16151d;
     z-index: 880;
     left: 0;
 }
@@ -3632,7 +3653,7 @@ body.layout-3 .main-footer {
     display: inline-block;
     width: 100%;
     text-align: center;
-    height: 60px;
+    height: 70px;
     line-height: 60px;
 }
 .main-sidebar .sidebar-brand.sidebar-brand-sm {
@@ -3643,7 +3664,7 @@ body.layout-3 .main-footer {
     text-transform: uppercase;
     letter-spacing: 1.5px;
     font-weight: 700;
-    color: #000;
+    color: #fff;
 }
 .main-sidebar .sidebar-user {
     display: inline-block;
@@ -3685,7 +3706,7 @@ body.layout-3 .main-footer {
     padding: 0 20px;
     width: 100%;
     letter-spacing: 0.3px;
-    color: #868e96;
+    color: #fff;
     text-decoration: none;
 }
 .main-sidebar .sidebar-menu li a .badge {
@@ -3703,7 +3724,7 @@ body.layout-3 .main-footer {
     width: 100%;
 }
 .main-sidebar .sidebar-menu li a:hover {
-    background-color: #fcfcfd;
+    background-color: #6f4e37;
 }
 .main-sidebar .sidebar-menu li.active a {
     color: #6777ef;

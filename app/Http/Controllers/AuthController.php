@@ -31,12 +31,13 @@ class AuthController extends Controller
             $user = Auth::user();
 
             if ($user->role === 'kepala_perpustakaan') {
-                return redirect()->intended('/admin/kepala-dashboard'); // Ganti URL sesuai kebutuhan
+                return redirect()->route('backend.home.index');
             } elseif ($user->role === 'petugas') {
-                return redirect()->intended('/admin/petugas-dashboard'); // Ganti URL sesuai kebutuhan
+                // Redirect ke route bernama 'backend.home.index'
+                return redirect()->route('backend.home.index');
             } else {
                 // Untuk anggota biasa
-                return redirect()->intended('/home');
+                return redirect()->intended('/');
             }
         }
 

@@ -3,8 +3,9 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\Book;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File; // Wajib ditambahkan
+use Illuminate\Support\Str;
 
 class BookSeeder extends Seeder
 {
@@ -13,15 +14,29 @@ class BookSeeder extends Seeder
      */
     public function run(): void
     {
-        // Path gambar default sesuai permintaanmu
-        $defaultImage = 'assets/r/557779963_3486861214786610_5644905288489553813_n (1).jpg';
+        // 1. Ambil semua file dari public/assets/bg
+        $bgPath = public_path('assets/bg');
+        $bgImages = [];
+
+        if (File::exists($bgPath)) {
+            $files = File::files($bgPath);
+            foreach ($files as $file) {
+                // Simpan format path-nya: assets/bg/namafile.jpg
+                $bgImages[] = 'assets/bg/' . $file->getFilename();
+            }
+        }
+
+        // Fallback jika folder bg kebetulan kosong
+        $defaultFallback = 'assets/img/no-cover.png';
 
         $books = [
             [
                 'title'       => 'Filosofi Teras',
-                'image'       => $defaultImage,
+                // Ambil gambar random dari array bgImages
+                'image'       => !empty($bgImages) ? $bgImages[array_rand($bgImages)] : $defaultFallback,
                 'description' => 'Filsafat Yunani-Romawi Kuno untuk Mental Tangguh Masa Kini.',
                 'author'      => 'Henry Manampiring',
+                'year'        => 2019,
                 'stock'       => 10,
                 'status'      => 'avaiable',
                 'created_at'  => now(),
@@ -29,9 +44,10 @@ class BookSeeder extends Seeder
             ],
             [
                 'title'       => 'Laskar Pelangi',
-                'image'       => $defaultImage,
+                'image'       => !empty($bgImages) ? $bgImages[array_rand($bgImages)] : $defaultFallback,
                 'description' => 'Kisah perjuangan 10 anak Belitung menuntut ilmu.',
                 'author'      => 'Andrea Hirata',
+                'year'        => 2005,
                 'stock'       => 5,
                 'status'      => 'avaiable',
                 'created_at'  => now(),
@@ -39,9 +55,10 @@ class BookSeeder extends Seeder
             ],
             [
                 'title'       => 'Atomic Habits',
-                'image'       => $defaultImage,
+                'image'       => !empty($bgImages) ? $bgImages[array_rand($bgImages)] : $defaultFallback,
                 'description' => 'Perubahan Kecil yang Memberikan Hasil Luar Biasa.',
                 'author'      => 'James Clear',
+                'year'        => 2018,
                 'stock'       => 0,
                 'status'      => 'not avaiable',
                 'created_at'  => now(),
@@ -49,9 +66,10 @@ class BookSeeder extends Seeder
             ],
             [
                 'title'       => 'Bumi',
-                'image'       => $defaultImage,
+                'image'       => !empty($bgImages) ? $bgImages[array_rand($bgImages)] : $defaultFallback,
                 'description' => 'Petualangan Raib, Seli, dan Ali di dunia paralel.',
                 'author'      => 'Tere Liye',
+                'year'        => 2014,
                 'stock'       => 8,
                 'status'      => 'avaiable',
                 'created_at'  => now(),
@@ -59,17 +77,28 @@ class BookSeeder extends Seeder
             ],
             [
                 'title'       => 'Mantappu Jiwa',
-                'image'       => $defaultImage,
+                'image'       => !empty($bgImages) ? $bgImages[array_rand($bgImages)] : $defaultFallback,
                 'description' => 'Buku latihan soal kehidupan ala Jerome Polin.',
                 'author'      => 'Jerome Polin Sijabat',
+                'year'        => 2019,
                 'stock'       => 3,
+                'status'      => 'avaiable',
+                'created_at'  => now(),
+                'updated_at'  => now(),
+            ],
+            [
+                'title'       => 'Alama Coba',
+                'image'       => !empty($bgImages) ? $bgImages[array_rand($bgImages)] : $defaultFallback,
+                'description' => 'Buku palsu.',
+                'author'      => 'Polisi',
+                'year'        => 2024,
+                'stock'       => 2,
                 'status'      => 'avaiable',
                 'created_at'  => now(),
                 'updated_at'  => now(),
             ],
         ];
 
-        // Masukkan data ke database
         DB::table('books')->insert($books);
     }
 }

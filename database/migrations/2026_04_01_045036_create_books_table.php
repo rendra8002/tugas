@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('title');
             $table->string('description');
             $table->string('author');
+            $table->year('year');
             $table->integer('stock');
             $table->enum('status', ['avaiable','not avaiable']);
 

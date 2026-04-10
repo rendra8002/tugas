@@ -4,7 +4,9 @@ namespace App\Http\Controllers\frontend;
 
 use App\Http\Controllers\Controller;
 use App\Models\Book;
+use App\Models\Peminjaman;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class HomeFrontendController extends Controller
 {
@@ -22,8 +24,21 @@ class HomeFrontendController extends Controller
      */
     public function index()
     {
-        $books = Book::all(); // Mengambil semua data buku
-        return view('pages.frontend.home.index', compact('books'));
+        // PERBAIKAN 1: Gunakan latest()->get() agar buku yang baru ditambah otomatis berada di urutan pertama
+        $books = Book::latest()->get();
+
+        // 2. Filter buku yang stoknya > 0 untuk tab "Available"
+        $availableBooks = $books->where('stock', '>', 0);
+
+        // 3. Ambil data buku yang SEDANG dipinjam oleh user (My Borrowed)
+        $myBorrowedBooks = Peminjaman::where('user_id', Auth::id())
+            ->whereIn('status', ['pending', 'approve', 'verifikasi'])
+            ->with('book')
+            ->get()
+            ->pluck('book')
+            ->filter();
+
+        return view('pages.frontend.home.index', compact('books', 'availableBooks', 'myBorrowedBooks'));
     }
 
     /**

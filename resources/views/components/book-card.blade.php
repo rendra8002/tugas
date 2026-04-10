@@ -1,13 +1,44 @@
 @props([
-    'image' => asset('assets/r/557779963_3486861214786610_5644905288489553813_n (1).jpg'),
+    'book' => null,
+    'link' => '#',
+    'title' => 'Untitled',
     'status' => 'Available',
-    'title' => 'Untitled Book',
 ])
+
+@php
+    $displayImage = asset('assets/img/no-cover.png'); // Default awal
+
+    if ($book && $book->image) {
+        if (Str::startsWith($book->image, ['http://', 'https://'])) {
+            $displayImage = $book->image;
+        } elseif (Str::startsWith($book->image, 'assets/')) {
+            $displayImage = asset($book->image);
+        } else {
+            // PERBAIKAN: Hapus kata 'books/' karena sudah bawaan dari database
+            $displayImage = asset('storage/' . $book->image);
+        }
+    }
+
+    $displayTitle = $book->title ?? ($title ?? 'Untitled Book');
+    $displayStatus = $book->status ?? ($status ?? 'Available');
+@endphp
+
+<a href="{{ $link }}" class="book-card-link" style="text-decoration: none; display: block;">
+    <article class="book-card" style="background-image: url('{{ $displayImage }}');">
+        <div class="article-header">
+            <button class="btn btn-available"
+                style="background-color: {{ strtolower($displayStatus) == 'avaiable' ? '#6777ef' : '#fc544b' }}">
+                {{ str_replace('not ', '', $displayStatus) }}
+            </button>
+            <div class="article-title">
+                <h2>{{ $displayTitle }}</h2>
+            </div>
+        </div>
+    </article>
+</a>
 
 @push('css.buku')
     <style>
-
-
         /* batas */
         .five-cols {
             display: flex;
@@ -55,9 +86,14 @@
             display: block;
         }
 
+        /* Tambahkan efek hover pada pembungkusnya juga biar smooth */
+        .book-card-link:hover {
+            text-decoration: none;
+        }
+
         .book-card:hover {
             transform: translateY(-8px);
-            box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 15px 30px -5px rgba(255, 255, 255, 0.25);
         }
 
         .book-card::after {
@@ -103,19 +139,7 @@
             font-size: 16px;
             font-weight: 700;
             line-height: 1.2;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
         }
     </style>
 @endpush
-
-<article class="book-card" style="background-image: url('{{ $image }}');">
-    <div class="article-header">
-        {{-- Warna dinamis berdasarkan status --}}
-        <button class="btn btn-available"
-            style="background-color: {{ strtolower($status) == 'avaiable' ? '#6777ef' : '#fc544b' }}">
-            {{ $status }}
-        </button>
-        <div class="article-title">
-            <h2>{{ $title }}</h2>
-        </div>
-    </div>
-</article>
