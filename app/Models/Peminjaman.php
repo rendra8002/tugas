@@ -29,23 +29,19 @@ class Peminjaman extends Model
     protected $appends = ['denda_realtime'];
 
     // 2. Buat Fungsi Accessor
+    // Di dalam Model Peminjaman.php
     public function getDendaRealtimeAttribute()
     {
         if ($this->status === 'returned') {
-            return $this->total_denda;
+            return abs((int)$this->total_denda); // Paksa positif saat ambil dari DB
         }
 
-        if (!$this->jatuh_tempo) return 0;
+        $jatuhTempo = \Carbon\Carbon::parse($this->jatuh_tempo)->startOfDay();
+        $hariIni = \Carbon\Carbon::now()->startOfDay();
 
-        $jatuhTempo = Carbon::parse($this->jatuh_tempo)->startOfDay();
-
-        $waktuSelesai = ($this->status === 'verifikasi' && $this->tanggal_kembali)
-            ? Carbon::parse($this->tanggal_kembali)->startOfDay()
-            : Carbon::now()->startOfDay();
-
-        if ($waktuSelesai->gt($jatuhTempo)) {
-            $selisihHari = $waktuSelesai->diffInDays($jatuhTempo);
-            return $selisihHari * 2000;
+        if ($hariIni->gt($jatuhTempo)) {
+            $selisihHari = $hariIni->diffInDays($jatuhTempo);
+            return $selisihHari * 2000; // Hasil pasti positif karena gt (greater than)
         }
 
         return 0;

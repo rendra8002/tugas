@@ -4,6 +4,7 @@ namespace App\Http\Controllers\backend;
 
 use App\Http\Controllers\Controller;
 use App\Models\Book;
+use App\Models\Category; // <--- WAJIB TAMBAHIN INI
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -12,31 +13,33 @@ class BookBackendController extends Controller
 {
     public function index(Request $request)
     {
-        // Tangkap inputan pencarian
         $search = $request->search;
 
-        // Query buku dengan fitur Search, Urutan ASC (Berdasarkan ID/Judul), dan Pagination 7
-        $books = Book::when($search, function ($query, $search) {
-            return $query->where('title', 'like', '%' . $search . '%')
-                ->orWhere('author', 'like', '%' . $search . '%');
-        })
-            ->orderBy('id', 'asc') // Mengurutkan dari yang paling pertama ditambahkan (ASC)
+        $books = Book::with('peminjamans') // <--- TAMBAHKAN INI
+            ->when($search, function ($query, $search) {
+                return $query->where('title', 'like', '%' . $search . '%')
+                    ->orWhere('author', 'like', '%' . $search . '%');
+            })
+            ->orderBy('id', 'asc')
             ->paginate(5)
-            ->withQueryString(); // Biar pas pindah halaman, inputan search nggak ilang
+            ->withQueryString();
 
         return view('pages.backend.book.index', compact('books'));
     }
 
     public function create()
     {
-        return view('pages.backend.book.create');
+        // AMBIL SEMUA KATEGORI UNTUK DROPDOWN
+        $categories = Category::all();
+        return view('pages.backend.book.create', compact('categories'));
     }
-
 
     public function edit($id)
     {
         $book = Book::findOrFail($id);
-        return view('pages.backend.book.edit', compact('book'));
+        // AMBIL SEMUA KATEGORI UNTUK DROPDOWN
+        $categories = Category::all();
+        return view('pages.backend.book.edit', compact('book', 'categories'));
     }
 
     public function store(Request $request)
@@ -44,40 +47,33 @@ class BookBackendController extends Controller
         try {
             $validated = $request->validate([
                 'title' => 'required',
+                'category_id' => 'required', // Pastikan category_id tervalidasi
                 'author' => 'required',
                 'year' => 'required|numeric',
-                'stock' => 'required|numeric',
+                'stock' => 'required|numeric|min:0', // <--- PROTEKSI BACKEND (MIN 0)
                 'description' => 'required',
-                // Kita gak validasi 'image' sebagai file lagi karena isinya teks base64
                 'image_cropped' => 'required'
             ]);
 
-            // Logic otomatis status (Gue tetep pake typo 'avaiable' sesuai DB lo ya wkwk)
+            // Logic otomatis status
             $validated['status'] = $request->stock > 0 ? 'avaiable' : 'not avaiable';
 
             // PROSES BASE64 KE IMAGE
             if ($request->image_cropped) {
                 $imgData = $request->image_cropped;
-
-                // Pecah string base64
-                // Format: data:image/jpeg;base64,/9j/4AAQSkZJRg...
                 $image_parts = explode(";base64,", $imgData);
                 $image_base64 = base64_decode($image_parts[1]);
 
-                // Buat nama file unik
                 $fileName = 'books/' . Str::random(10) . '_' . time() . '.jpg';
-
-                // Simpan ke storage public
                 Storage::disk('public')->put($fileName, $image_base64);
 
-                // Masukin path-nya ke array validated buat masuk DB
                 $validated['image'] = $fileName;
             }
 
             Book::create($validated);
             return redirect()->route('book-admin.index')->with('success', 'Buku berhasil ditambah!');
         } catch (\Exception $e) {
-            dd($e->getMessage());
+            return back()->withInput()->with('error', $e->getMessage());
         }
     }
 
@@ -87,9 +83,10 @@ class BookBackendController extends Controller
 
         $validated = $request->validate([
             'title' => 'required',
+            'category_id' => 'required',
             'author' => 'required',
             'year' => 'required|numeric',
-            'stock' => 'required|numeric',
+            'stock' => 'required|numeric|min:0', // <--- PROTEKSI BACKEND (MIN 0)
             'description' => 'required',
             'image_cropped' => 'nullable'
         ]);
@@ -97,7 +94,7 @@ class BookBackendController extends Controller
         $validated['status'] = $request->stock > 0 ? 'avaiable' : 'not avaiable';
 
         if ($request->image_cropped) {
-            // PERBAIKAN: Jangan hapus gambar kalau dia dari folder 'assets'
+            // Hapus gambar lama jika ada dan bukan dari assets
             if ($book->image && !str_starts_with($book->image, 'assets')) {
                 Storage::disk('public')->delete($book->image);
             }
@@ -118,14 +115,28 @@ class BookBackendController extends Controller
 
     public function destroy($id)
     {
-        $book = Book::findOrFail($id);
+        // 1. Cari buku beserta relasi peminjamannya
+        $book = Book::with('peminjamans')->findOrFail($id);
 
-        // PERBAIKAN: Jangan hapus gambar kalau dia dari folder 'assets'
+        // 2. Cek apakah ada transaksi yang statusnya BUKAN 'returned' atau 'rejected'
+        // Kita anggap 'rejected' juga tuntas karena buku tidak jadi keluar
+        $isBeingBorrowed = $book->peminjamans
+            ->whereNotIn('status', ['returned', 'rejected'])
+            ->count() > 0;
+
+        if ($isBeingBorrowed) {
+            // Jika masih ada transaksi menggantung, gagalkan hapus dan kirim error
+            return redirect()->back()->with('error', 'Ada transaksi yang belum tuntas! Selesaikan atau batalkan peminjaman terlebih dahulu.');
+        }
+
+        // 3. Jika aman, hapus gambar (kecuali assets)
         if ($book->image && !str_starts_with($book->image, 'assets')) {
             Storage::disk('public')->delete($book->image);
         }
 
+        // 4. Hapus data buku
         $book->delete();
-        return redirect()->back()->with('success', 'Buku dihapus!');
+
+        return redirect()->back()->with('success', 'Buku berhasil dihapus dari perpustakaan!');
     }
 }

@@ -13,14 +13,14 @@ return new class extends Migration
     {
         Schema::create('books', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('category_id')->nullable()->constrained('categories')->onDelete('set null');
             $table->string('image')->nullable();
-            $table->string('title');
+            $table->string('title')->nullable();
             $table->string('description');
             $table->string('author');
             $table->year('year');
             $table->integer('stock');
-            $table->enum('status', ['avaiable','not avaiable']);
-
+            $table->enum('status', ['avaiable', 'not avaiable']);
             $table->timestamps();
         });
     }

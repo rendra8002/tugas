@@ -14,31 +14,34 @@ use Carbon\Carbon;
 class PeminjamanController extends Controller
 {
 
-    // Tambahkan ini di paling atas Model (di bawah class Peminjaman extends Model)
-    // Supaya denda_realtime otomatis nempel saat data dipanggil
-
     public function index(Request $request)
     {
-        // Tangkap inputan pencarian
-        $search = $request->search;
+        // AMBIL SEMUA YANG MASIH DIPINJAM
+        $peminjamanAktif = Peminjaman::where('status', 'approve')->get();
 
-        // Query Peminjaman dengan fitur Search (Nama User atau Judul Buku)
+        foreach ($peminjamanAktif as $item) {
+            // Hitung denda berdasarkan tanggal hari ini vs jatuh tempo
+            $dendaSekarang = $item->denda_realtime;
+
+            // Simpan ke DB agar tidak 0 terus di phpMyAdmin
+            $item->update(['total_denda' => $dendaSekarang]);
+        }
+
+        $search = $request->search;
         $peminjamans = Peminjaman::with(['user', 'book'])
             ->when($search, function ($query, $search) {
                 return $query->whereHas('user', function ($q) use ($search) {
                     $q->where('name', 'like', '%' . $search . '%');
-                })
-                    ->orWhereHas('book', function ($q) use ($search) {
-                        $q->where('title', 'like', '%' . $search . '%');
-                    });
+                })->orWhereHas('book', function ($q) use ($search) {
+                    $q->where('title', 'like', '%' . $search . '%');
+                });
             })
-            ->orderBy('created_at', 'desc') // Peminjaman baru selalu di atas
+            ->orderBy('created_at', 'desc')
             ->paginate(7)
             ->withQueryString();
 
         return view('pages.backend.peminjaman.index', compact('peminjamans'));
     }
-
     public function approve($id)
     {
         $data = Peminjaman::findOrFail($id);
@@ -92,12 +95,15 @@ class PeminjamanController extends Controller
             }
 
             // JIKA ADMIN MENERIMA BUKTI
-            // Di PeminjamanController.php bagian returnBook (approve_payment)
             if ($request->action === 'approve_payment') {
                 DB::transaction(function () use ($peminjaman) {
+
+                    // TANGKAP NILAI DENDA SEBELUM STATUS BERUBAH AGAR TIDAK MINUS
+                    $dendaAkurat = $peminjaman->denda_realtime;
+
                     $peminjaman->update([
                         'status' => 'returned',
-                        'total_denda' => $peminjaman->denda_realtime,
+                        'total_denda' => $dendaAkurat,
                         'is_printed' => false, // Set false agar tombol muncul di user
                     ]);
                     Book::find($peminjaman->book_id)->increment('stock');
@@ -107,17 +113,23 @@ class PeminjamanController extends Controller
             }
         }
 
-        // 2. JIKA BUKU NORMAL (Admin manual klik Return / tanpa denda)
+        // 2. JIKA BUKU NORMAL ATAU TELAT (Admin manual klik Return / Terima Tunai)
         if ($peminjaman->status === 'approve') {
             DB::transaction(function () use ($peminjaman) {
+
+                // TANGKAP NILAI DENDA SEBELUM STATUS BERUBAH AGAR TIDAK MINUS
+                $dendaAkurat = $peminjaman->denda_realtime;
+
                 $peminjaman->update([
                     'status' => 'returned',
                     'tanggal_kembali' => now(),
+                    'total_denda' => $dendaAkurat,
+                    'is_printed' => false, // Set false agar bisa dicetak nantinya
                 ]);
                 Book::find($peminjaman->book_id)->increment('stock');
             });
 
-            return redirect()->back()->with('success', 'BERHASIL: Buku dikembalikan secara manual!');
+            return redirect()->back()->with('success', 'BERHASIL: Buku dikembalikan dan denda (jika ada) tercatat lunas!');
         }
 
         return redirect()->back()->with('error', 'Gagal: Status buku tidak sesuai untuk aksi ini.');

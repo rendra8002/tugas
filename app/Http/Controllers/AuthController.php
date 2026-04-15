@@ -4,54 +4,74 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash; // Tambahkan ini
+use App\Models\User; // Tambahkan ini
 
 class AuthController extends Controller
 {
-    // Menampilkan halaman form login
+    // === FITUR LOGIN ===
     public function index()
     {
         return view('auth.login');
     }
 
-    // Memproses data login
     public function login(Request $request)
     {
-        // 1. Validasi inputan
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required'],
         ]);
 
-        // 2. Cek apakah email dan password cocok
         if (Auth::attempt($credentials)) {
-            // Jika berhasil, buat ulang session (keamanan)
             $request->session()->regenerate();
-
-            // 3. Cek role user dan arahkan ke dashboard masing-masing
             $user = Auth::user();
 
-            if ($user->role === 'kepala_perpustakaan') {
-                return redirect()->route('backend.home.index');
-            } elseif ($user->role === 'petugas') {
-                // Redirect ke route bernama 'backend.home.index'
-                return redirect()->route('backend.home.index');
+            if ($user->role === 'kepala_perpustakaan' || $user->role === 'petugas') {
+                // FIX: Ubah jadi dashboard.admin sesuai route web.php kamu
+                return redirect()->route('dashboard.admin');
             } else {
-                // Untuk anggota biasa
                 return redirect()->intended('/');
             }
         }
-
-        // 4. Jika gagal, kembalikan ke halaman login dengan pesan error
         return back()->with('error', 'Email atau Password salah!')->withInput();
     }
 
-    // Memproses logout
     public function logout(Request $request)
     {
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-
         return redirect('/login');
+    }
+
+    // === FITUR REGISTER BARU ===
+    public function showRegisterForm()
+    {
+        return view('auth.register'); // Pastikan letak file balde ada di views/auth/register.blade.php
+    }
+
+    public function register(Request $request)
+    {
+        // 1. Validasi input
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8|confirmed', // 'confirmed' butuh field 'password_confirmation' di HTML
+            'agree' => 'accepted' // Wajib centang S&K
+        ]);
+
+        // 2. Masukkan ke Database & Paksa role jadi 'anggota'
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password), // Enkripsi password
+            'role' => 'anggota', // <--- INI KUNCI UTAMANYA: Paksa otomatis anggota
+        ]);
+
+        // 3. Otomatiskan Login setelah sukses mendaftar
+        Auth::login($user);
+
+        // 4. Arahkan ke halaman utama frontend
+        return redirect()->route('index')->with('success', 'Registrasi berhasil! Selamat datang di Perpustakaan.');
     }
 }

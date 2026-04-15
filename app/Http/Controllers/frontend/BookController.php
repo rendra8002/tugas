@@ -24,12 +24,27 @@ class BookController extends Controller
     {
         $book = Book::findOrFail($id);
 
-        // 1. Ambil transaksi yang AKTIF
+        // 1. Ambil transaksi yang AKTIF untuk buku ini
         $activePeminjaman = Peminjaman::where('user_id', Auth::id())
             ->where('book_id', $id)
             ->whereIn('status', ['pending', 'approve', 'verifikasi'])
             ->latest()
             ->first();
+
+        // --- TAMBAHAN LOGIKA LIMIT & TELAT ---
+        // Hitung total buku yang sedang dipinjam/proses (selain returned & rejected)
+        $totalActiveCount = Peminjaman::where('user_id', Auth::id())
+            ->whereIn('status', ['pending', 'approve', 'verifikasi'])
+            ->count();
+
+        // Hitung berapa banyak buku yang statusnya 'approve' tapi sudah melewati jatuh tempo
+        $overdueCount = Peminjaman::where('user_id', Auth::id())
+            ->where('status', 'approve')
+            ->get()
+            ->filter(function ($item) {
+                return Carbon::now()->startOfDay()->gt(Carbon::parse($item->jatuh_tempo)->startOfDay());
+            })->count();
+        // -------------------------------------
 
         // 2. Transaksi yang baru saja dikembalikan
         $lastReturned = Peminjaman::where('user_id', Auth::id())
@@ -55,12 +70,11 @@ class BookController extends Controller
                 $jatuhTempo = Carbon::parse($activePeminjaman->jatuh_tempo)->startOfDay();
                 $now = Carbon::now()->startOfDay();
 
-                // Gunakan abs() agar hari tidak negatif
                 $remainingDays = abs($jatuhTempo->diffInDays($now));
 
                 if ($now->gt($jatuhTempo)) {
                     $isOverdue = true;
-                    $denda = abs($activePeminjaman->denda_realtime); // Pastikan positif
+                    $denda = abs($activePeminjaman->denda_realtime);
                 }
             }
         }
@@ -76,7 +90,9 @@ class BookController extends Controller
             'isApproved',
             'isOverdue',
             'remainingDays',
-            'denda'
+            'denda',
+            'totalActiveCount', // Kirim ke view
+            'overdueCount'      // Kirim ke view
         ));
     }
 
@@ -104,26 +120,27 @@ class BookController extends Controller
 
     public function returnBook(Request $request, $id)
     {
+        // Cari yang statusnya masih 'approve' (artinya buku masih di tangan user)
         $peminjaman = Peminjaman::where('user_id', Auth::id())
             ->where('book_id', $id)
             ->where('status', 'approve')
             ->first();
 
-        if (!$peminjaman) return redirect()->back()->with('error', 'Data tidak ditemukan.');
+        // Jika sudah diklik kembalikan sebelumnya, cegah error "Data tidak ditemukan"
+        if (!$peminjaman) {
+            return redirect()->route('book.show', $id)->with('info', 'Proses pengembalian sudah dilakukan atau sedang diverifikasi.');
+        }
 
         $jatuhTempo = Carbon::parse($peminjaman->jatuh_tempo)->startOfDay();
         $hariIni = Carbon::now()->startOfDay();
 
-        // PAKSA denda jadi positif menggunakan abs()
+        // Pastikan denda positif
         $dendaAkhir = abs($peminjaman->denda_realtime);
         $isOverdue = $hariIni->gt($jatuhTempo) || $dendaAkhir > 0;
 
         if ($isOverdue) {
             $request->validate([
                 'bukti_pembayaran' => 'required'
-            ], [
-                'bukti_pembayaran.required' => 'Buku terlambat, harap upload bukti pembayaran denda.',
-                'bukti_pembayaran.max' => 'Ukuran file terlalu besar (Maks 2MB).'
             ]);
         }
 
@@ -133,20 +150,22 @@ class BookController extends Controller
                     $peminjaman->update([
                         'status' => 'verifikasi',
                         'tanggal_kembali' => now(),
-                        'total_denda' => $dendaAkhir, // Angka positif yang disimpan
+                        'total_denda' => $dendaAkhir,
                         'bukti_pembayaran' => $request->file('bukti_pembayaran')->store('bukti_pembayaran', 'public'),
                     ]);
                 } else {
+                    // UNTUK YANG TEPAT WAKTU
                     $peminjaman->update([
                         'status' => 'returned',
                         'tanggal_kembali' => now(),
                         'total_denda' => 0,
+                        'is_printed' => false, // Pastikan ini false agar tombol download muncul
                     ]);
                     Book::find($id)->increment('stock');
                 }
             });
 
-            $pesan = $isOverdue ? 'Bukti denda Rp ' . number_format($dendaAkhir, 0, ',', '.') . ' terkirim!' : 'Buku kembali tepat waktu!';
+            $pesan = $isOverdue ? 'Bukti denda berhasil dikirim!' : 'Buku berhasil dikembalikan tepat waktu!';
             return redirect()->route('book.show', $id)->with('success', $pesan);
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Gagal: ' . $e->getMessage());

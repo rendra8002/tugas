@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Backend; // Pastikan 'Backend', bukan 'Admin'
+namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
 use App\Models\Peminjaman;
@@ -12,12 +12,19 @@ class ReportController extends Controller
 {
     public function index(Request $request)
     {
+        // 1. Tangkap parameter dari URL
         $period = $request->get('period', 'today');
+        $status = $request->get('status', 'all'); // FIX: Tangkap filter status
 
         // Query dasar menggunakan tabel peminjamans
         $query = Peminjaman::with(['user', 'book']);
 
-        // Filter Waktu berdasarkan tanggal_pinjam
+        // 2. LOGIKA FILTER STATUS
+        if ($status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        // 3. LOGIKA FILTER WAKTU (Berdasarkan tanggal_pinjam)
         switch ($period) {
             case 'weekly':
                 $query->whereBetween('tanggal_pinjam', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()]);
@@ -42,15 +49,24 @@ class ReportController extends Controller
         $transactions = $allData;
         $fines = $allData->where('total_denda', '>', 0);
 
-        return view('pages.backend.report.index', compact('transactions', 'fines', 'period'));
+        // FIX: Pastikan variabel $status ikut dikirim ke view menggunakan compact
+        return view('pages.backend.report.index', compact('transactions', 'fines', 'period', 'status'));
     }
 
     public function printPdf(Request $request)
     {
+        // 1. Tangkap parameter dari URL
         $period = $request->get('period', 'today');
+        $status = $request->get('status', 'all'); // FIX: Tangkap filter status untuk PDF
+
         $query = Peminjaman::with(['user', 'book']);
 
-        // Filter yang sama untuk PDF
+        // 2. LOGIKA FILTER STATUS (Sama seperti index)
+        if ($status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        // 3. LOGIKA FILTER WAKTU
         if ($period == 'weekly') {
             $query->whereBetween('tanggal_pinjam', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()]);
         } elseif ($period == 'monthly') {
@@ -65,9 +81,11 @@ class ReportController extends Controller
         $transactions = $allData;
         $fines = $allData->where('total_denda', '>', 0);
 
-        $pdf = Pdf::loadView('pages.backend.report.pdf', compact('transactions', 'fines', 'period'))
+        // FIX: Pastikan variabel $status ikut dikirim ke view PDF
+        $pdf = Pdf::loadView('pages.backend.report.pdf', compact('transactions', 'fines', 'period', 'status'))
             ->setPaper('a4', 'landscape');
 
-        return $pdf->download('laporan-perpustakaan-' . $period . '.pdf');
+        // Nama file PDF dibuat lebih dinamis sesuai filter
+        return $pdf->download('laporan-perpustakaan-' . $period . '-' . $status . '.pdf');
     }
 }

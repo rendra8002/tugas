@@ -26,7 +26,6 @@
 
         .toast-content {
             background: #28a745;
-            /* Hijau sukses */
             color: white;
             padding: 12px 20px;
             border-radius: 8px;
@@ -40,10 +39,8 @@
 
         .toast-error {
             background: #dc3545;
-            /* Merah error */
         }
 
-        /* Animasi masuk dan keluar */
         @keyframes slideIn {
             from {
                 transform: translateX(100%);
@@ -76,10 +73,52 @@
             dataLayer.push(arguments);
         }
         gtag('js', new Date());
-
         gtag('config', 'UA-94034622-3');
     </script>
-    @stack('scripts')
+
+    {{-- CSS DROPDOWN CUSTOM KITA --}}
+    <style>
+        .custom-dropdown-result {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 300px;
+            background: #ffffff;
+            border-radius: 5px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            z-index: 99999 !important;
+            display: none;
+            margin-top: 10px;
+            max-height: 350px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+        }
+
+        .custom-search-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            text-decoration: none !important;
+            border-bottom: 1px solid #f1f2f5;
+            transition: 0.2s;
+        }
+
+        .custom-search-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .custom-search-header {
+            padding: 10px 15px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #888;
+            background: #fdfdfd;
+            border-bottom: 1px solid #eee;
+        }
+    </style>
+
+    {{-- FIX: @stack('scripts') DIHAPUS DARI SINI --}}
 </head>
 
 <body class="layout-3">
@@ -116,6 +155,7 @@
         </div>
     </div>
 
+    {{-- KUMPULAN JAVASCRIPT --}}
     <script src="{{ asset('assets/modules/jquery.min.js') }}"></script>
     <script src="{{ asset('assets/modules/popper.js') }}"></script>
     <script src="{{ asset('assets/modules/tooltip.js') }}"></script>
@@ -129,7 +169,6 @@
 
     {{-- SCRIPT UNTUK AUTO-HIDE TOAST ALERT --}}
     <script>
-        // Hapus elemen alert setelah 3 detik
         setTimeout(function() {
             var alertSuccess = document.getElementById('floating-alert-success');
             if (alertSuccess) {
@@ -142,6 +181,10 @@
             }
         }, 3000);
     </script>
+
+    {{-- FIX: @stack('scripts') DIPINDAHKAN KE SINI (Paling Bawah) --}}
+    @stack('scripts')
+
 </body>
 
 </html>

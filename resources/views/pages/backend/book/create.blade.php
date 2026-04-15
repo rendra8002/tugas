@@ -57,9 +57,11 @@
                                                     <div class="form-group">
                                                         <label class="text-muted small font-weight-bold"
                                                             style="letter-spacing: 1px;">STOCK</label>
+                                                        {{-- Tambahkan min="0" dan oninput untuk proteksi ekstra di FE --}}
                                                         <input type="number" name="stock" class="form-control"
                                                             style="background-color: #252531; color: white; border: 1px solid #444;"
-                                                            placeholder="0" value="0" required>
+                                                            placeholder="0" value="0" min="0"
+                                                            oninput="this.value = Math.abs(this.value)" required>
                                                     </div>
                                                 </div>
                                             </div>

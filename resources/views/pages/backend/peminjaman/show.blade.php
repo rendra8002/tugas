@@ -22,7 +22,6 @@
                         color: #fff;
                     }
 
-                    /* Custom badge & styling biar senada sama index */
                     .badge-custom {
                         padding: 6px 15px;
                         border-radius: 4px;
@@ -58,7 +57,6 @@
                         border-radius: 4px;
                     }
 
-                    /* Info Box Styling */
                     .info-box {
                         background-color: #252531;
                         border: 1px solid #444;
@@ -86,7 +84,6 @@
 
                 <div class="row">
                     <div class="col-12">
-                        {{-- SATU CARD UTAMA --}}
                         <div class="card border-0 shadow-sm" style="background-color: #1a1a24; border-radius: 12px;">
                             <div class="card-header border-bottom-0 pb-0 pt-4">
                                 <h4 style="color: white;"><i class="fas fa-file-invoice mr-2"></i>Rincian Transaksi
@@ -95,9 +92,7 @@
 
                             <div class="card-body">
                                 <div class="row">
-                                    {{-- Kolom Kiri: Profil User & Buku --}}
                                     <div class="col-md-6 mb-4 mb-md-0 pr-md-4">
-                                        {{-- Info User --}}
                                         <div class="d-flex align-items-center mb-4 pb-4"
                                             style="border-bottom: 1px dashed #444;">
                                             @php
@@ -107,17 +102,13 @@
 
                                                 if ($dbValue) {
                                                     if (Str::startsWith($dbValue, ['http://', 'https://'])) {
-                                                        // Jika link luar
                                                         $finalUrl = $dbValue;
                                                     } elseif (Str::startsWith($dbValue, 'assets/')) {
-                                                        // JIKA DARI ASSETS (Kasus kamu sekarang)
                                                         $finalUrl = asset($dbValue);
                                                     } else {
-                                                        // Jika dari storage upload biasa
                                                         $finalUrl = asset('storage/users/' . $dbValue);
                                                     }
                                                 } else {
-                                                    // Fallback jika NULL
                                                     $finalUrl =
                                                         'https://ui-avatars.com/api/?name=' .
                                                         urlencode($user->name) .
@@ -140,13 +131,8 @@
                                             </div>
                                         </div>
 
-                                        {{-- Info Buku --}}
                                         <div class="d-flex align-items-center pb-3">
-                                            <img src="{{ $peminjaman->book->image
-                                                ? (str_starts_with($peminjaman->book->image, 'assets')
-                                                    ? asset($peminjaman->book->image)
-                                                    : asset('storage/' . $peminjaman->book->image))
-                                                : 'https://via.placeholder.com/150x200?text=No+Cover' }}"
+                                            <img src="{{ $peminjaman->book->image ? (str_starts_with($peminjaman->book->image, 'assets') ? asset($peminjaman->book->image) : asset('storage/' . $peminjaman->book->image)) : 'https://via.placeholder.com/150x200?text=No+Cover' }}"
                                                 alt="cover"
                                                 style="width: 70px; height: 105px; border-radius: 6px; object-fit: cover; box-shadow: 0 4px 8px rgba(0,0,0,0.3);"
                                                 class="mr-4">
@@ -162,11 +148,9 @@
                                         </div>
                                     </div>
 
-                                    {{-- Kolom Kanan: Status & Waktu Transaksi --}}
                                     <div class="col-md-6">
                                         <div class="info-box">
                                             <div class="row">
-                                                {{-- STATUS PEMINJAMAN --}}
                                                 <div class="col-6">
                                                     <div class="info-label">Status Peminjaman</div>
                                                     <div class="mb-4">
@@ -176,18 +160,53 @@
                                                     </div>
                                                 </div>
 
-                                                {{-- DENDA --}}
                                                 <div class="col-6">
                                                     <div class="info-label">Denda Keterlambatan</div>
                                                     <div class="mb-4">
-                                                        @if (in_array($peminjaman->status, ['pending', 'rejected']))
+                                                        @php
+                                                            // FIX: Pakai abs() biar angka negatif di DB tetap kebaca dan tampil positif
+                                                            $nominalDendaAbs = abs((int) $peminjaman->denda_realtime);
+                                                            $dendaDBAbs = abs((int) $peminjaman->total_denda);
+
+                                                            $hariIni = \Carbon\Carbon::now()->startOfDay();
+                                                            $jt = \Carbon\Carbon::parse(
+                                                                $peminjaman->jatuh_tempo,
+                                                            )->startOfDay();
+                                                        @endphp
+
+                                                        @if ($peminjaman->status == 'returned')
+                                                            @if ($dendaDBAbs > 0)
+                                                                <span class="badge badge-success"
+                                                                    style="font-size: 12px; background-color: #28a745; color: white;">
+                                                                    <i class="fas fa-check-double mr-1"></i> LUNAS (Rp
+                                                                    {{ number_format($dendaDBAbs, 0, ',', '.') }})
+                                                                </span>
+                                                            @else
+                                                                <span class="badge badge-info"
+                                                                    style="font-size: 12px; background-color: #17a2b8; color: white;">
+                                                                    <i class="fas fa-check-circle mr-1"></i> Tepat Waktu (Rp
+                                                                    0)
+                                                                </span>
+                                                            @endif
+                                                        @elseif (in_array($peminjaman->status, ['pending', 'rejected']))
                                                             <span class="text-muted">-</span>
-                                                        @elseif ($peminjaman->denda_realtime > 0)
-                                                            <span class="text-denda">Rp
-                                                                {{ number_format($peminjaman->denda_realtime, 0, ',', '.') }}</span>
                                                         @else
-                                                            <span style="color: #28a745; font-weight: 600;">Tidak Ada
-                                                                (Aman)</span>
+                                                            @if ($nominalDendaAbs > 0)
+                                                                <span class="text-denda" style="font-size: 14px;">
+                                                                    <i class="fas fa-exclamation-triangle mr-1"></i> Rp
+                                                                    {{ number_format($nominalDendaAbs, 0, ',', '.') }}
+                                                                </span>
+                                                            @elseif ($hariIni->equalTo($jt))
+                                                                <span class="badge badge-warning text-dark"
+                                                                    style="font-size: 12px; font-weight: bold;">
+                                                                    <i class="fas fa-hourglass-half mr-1"></i> Terakhir Hari
+                                                                    Ini
+                                                                </span>
+                                                            @else
+                                                                <span style="color: #28a745; font-weight: 600;">
+                                                                    <i class="fas fa-clock mr-1"></i> Rp 0 (Aman)
+                                                                </span>
+                                                            @endif
                                                         @endif
                                                     </div>
                                                 </div>
@@ -196,7 +215,6 @@
                                                     <hr style="border-color: #444; margin-top: 0;">
                                                 </div>
 
-                                                {{-- TANGGAL PINJAM --}}
                                                 <div class="col-6 mt-2">
                                                     <div class="info-label">Tanggal Pinjam</div>
                                                     <div class="info-value" style="font-size: 14px;">
@@ -210,7 +228,6 @@
                                                     </div>
                                                 </div>
 
-                                                {{-- JATUH TEMPO --}}
                                                 <div class="col-6 mt-2">
                                                     <div class="info-label">Jatuh Tempo</div>
                                                     <div class="info-value" style="font-size: 14px;">
@@ -225,7 +242,6 @@
                                                     </div>
                                                 </div>
 
-                                                {{-- DIKEMBALIKAN PADA --}}
                                                 <div class="col-12 mt-3">
                                                     <div class="info-label">Dikembalikan Pada</div>
                                                     <div class="info-value mb-0" style="font-size: 14px;">
@@ -242,7 +258,6 @@
                                                     </div>
                                                 </div>
 
-                                                {{-- AREA BUKTI PEMBAYARAN (Masuk rapi di dalam Info Box) --}}
                                                 @if ($peminjaman->bukti_pembayaran)
                                                     <div class="col-12 mt-4 pt-3" style="border-top: 1px dashed #444;">
                                                         <div class="info-label text-warning" style="font-size: 13px;">
@@ -251,27 +266,20 @@
                                                         </div>
                                                         <div class="mt-2 text-center text-md-left">
                                                             <a href="{{ asset('storage/' . $peminjaman->bukti_pembayaran) }}"
-                                                                target="_blank" title="Klik untuk memperbesar">
+                                                                target="_blank">
                                                                 <img src="{{ asset('storage/' . $peminjaman->bukti_pembayaran) }}"
                                                                     alt="Bukti Transfer" class="img-fluid rounded"
                                                                     style="max-height: 200px; border: 2px solid #5a67d8; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
                                                             </a>
-                                                            <div class="text-muted small mt-2">
-                                                                <i class="fas fa-search-plus"></i> Klik gambar untuk melihat
-                                                                ukuran penuh
-                                                            </div>
                                                         </div>
                                                     </div>
                                                 @endif
-                                                {{-- END BUKTI PEMBAYARAN --}}
-
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            {{-- Footer: Aksi Petugas (Hanya tampil jika bukan Kepala Perpustakaan) --}}
                             @if (Auth::user()->role !== 'kepala_perpustakaan')
                                 <div class="card-footer border-0 d-flex justify-content-end pt-3 pb-4 pr-4"
                                     style="background-color: transparent;">
@@ -287,18 +295,8 @@
                                             <button class="btn btn-success font-weight-bold px-4"><i
                                                     class="fas fa-check mr-1"></i> Setujui</button>
                                         </form>
-                                    @elseif($peminjaman->status == 'approve')
-                                        {{-- TOMBOL KEMBALI NORMAL (Kalau gak ada denda) --}}
-                                        <form action="{{ route('peminjaman.return', $peminjaman->id) }}" method="POST">
-                                            @csrf
-                                            <button class="btn btn-warning font-weight-bold px-4">
-                                                <i class="fas fa-undo mr-1"></i> Konfirmasi Pengembalian
-                                            </button>
-                                        </form>
                                     @elseif($peminjaman->status == 'verifikasi')
-                                        {{-- TOMBOL VERIFIKASI PEMBAYARAN DENDA --}}
                                         <div class="d-flex">
-                                            {{-- Form Tolak Bukti --}}
                                             <form action="{{ route('peminjaman.return', $peminjaman->id) }}"
                                                 method="POST" class="mr-2">
                                                 @csrf
@@ -308,8 +306,6 @@
                                                     <i class="fas fa-times-circle mr-1"></i> Tolak Bukti Bayar
                                                 </button>
                                             </form>
-
-                                            {{-- Form Terima Bukti --}}
                                             <form action="{{ route('peminjaman.return', $peminjaman->id) }}"
                                                 method="POST">
                                                 @csrf
@@ -321,15 +317,11 @@
                                         </div>
                                     @endif
                                 </div>
+                            @endif
                         </div>
                     </div>
-                    @endif
-                    {{-- END CARD UTAMA --}}
-
                 </div>
             </div>
-    </div>
-    </div>
-    </section>
+        </section>
     </div>
 @endsection

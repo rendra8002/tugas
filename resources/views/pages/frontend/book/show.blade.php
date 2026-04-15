@@ -204,28 +204,46 @@
                             <div class="d-flex mt-4 justify-content-center">
                                 {{-- LOGIKA TOMBOL MUTUALLY EXCLUSIVE --}}
                                 @if (!$activePeminjaman)
-                                    {{-- KONDISI 1: Belum pinjam sama sekali -> Tampil tombol PINJAM --}}
-                                    <form action="{{ route('book.borrow', $book->id) }}" method="POST">
+                                    {{-- KONDISI 1: Belum pinjam buku ini --}}
+                                    @php
+                                        $isLimitReached = $totalActiveCount >= 3;
+                                        $isTooManyOverdue = $overdueCount >= 2;
+                                        $canBorrow = !$isLimitReached && !$isTooManyOverdue && $book->stock > 0;
+
+                                        // Tentukan pesan tooltip
+                                        $reason = '';
+                                        if ($book->stock <= 0) {
+                                            $reason = 'Stok buku habis';
+                                        } elseif ($isTooManyOverdue) {
+                                            $reason = 'Anda memiliki 2 atau lebih buku yang telat dikembalikan';
+                                        } elseif ($isLimitReached) {
+                                            $reason = 'Maksimal peminjaman adalah 3 buku';
+                                        }
+                                    @endphp
+
+                                    <form action="{{ route('book.borrow', $book->id) }}" method="POST"
+                                        title="{{ $reason }}">
                                         @csrf
                                         <button type="submit" class="btn btn-checkout"
-                                            @if ($book->stock <= 0) disabled @endif>
+                                            @if (!$canBorrow) disabled 
+                    style="cursor: not-allowed; filter: grayscale(1); opacity: 0.6;" @endif>
                                             <i class="fas fa-book-reader mr-1"></i> Pinjam Buku Ini
                                         </button>
                                     </form>
                                 @elseif ($activePeminjaman->status == 'pending')
-                                    {{-- KONDISI 2: Sedang Pending -> Tombol Pinjam hilang --}}
+                                    {{-- KONDISI 2: Sedang Pending --}}
                                     <button class="btn btn-secondary" disabled
-                                        style="background-color: #333344; border: none; color: #a0a0a0; padding: 8px 25px; border-radius: 5px;">
+                                        style="background-color: #333344; border: none; color: #a0a0a0; padding: 8px 25px; border-radius: 5px; cursor: not-allowed;">
                                         <i class="fas fa-hourglass-half mr-1"></i> Menunggu Persetujuan...
                                     </button>
                                 @elseif ($activePeminjaman->status == 'verifikasi')
-                                    {{-- KONDISI 3: Sedang Verifikasi Bukti Bayar Denda --}}
+                                    {{-- KONDISI 3: Sedang Verifikasi --}}
                                     <button class="btn btn-info" disabled
                                         style="background-color: #17a2b8; color: white; border: none; padding: 8px 25px; border-radius: 5px; cursor: not-allowed;">
                                         <i class="fas fa-search-dollar mr-1"></i> Sedang Verifikasi...
                                     </button>
                                 @elseif ($activePeminjaman->status == 'approve')
-                                    {{-- KONDISI 4: Sudah Approve -> Tampil tombol KEMBALIKAN (Buka Modal) --}}
+                                    {{-- KONDISI 4: Sudah Approve (Tombol Kembalikan) --}}
                                     <button type="button" class="btn {{ $isOverdue ? 'btn-danger-custom' : 'btn-info' }}"
                                         data-toggle="modal" data-target="#returnModal"
                                         style="{{ !$isOverdue ? 'background-color: #17a2b8; border: none; color: white; padding: 8px 25px; border-radius: 5px; transition: 0.3s;' : '' }}">
@@ -261,7 +279,8 @@
 
                         {{-- Bagian Kanan (Info Buku) --}}
                         <div class="col-md-8 pl-md-5">
-                            <h2 class="font-weight-bold mb-1 text-white" style="font-size: 2.5rem;">{{ $book->title }}</h2>
+                            <h2 class="font-weight-bold mb-1 text-white" style="font-size: 2.5rem;">{{ $book->title }}
+                            </h2>
                             <span class="badge badge-year mb-4">{{ $book->year }}</span>
 
                             <div class="row pb-3 mb-3" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
@@ -282,7 +301,17 @@
                             </div>
 
                             <div class="row pb-3 mb-3" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
-                                <div class="col-12">
+                                <div class="col-6">
+                                    <div class="text-label">Category</div>
+                                    <div class="text-value mb-0">
+                                        <span class="badge"
+                                            style="background-color: #2a2a35; color: #d0d0d0; border: 1px solid #444; padding: 5px 12px; border-radius: 6px; font-weight: 500;">
+                                            <i class="fas fa-tags mr-1" style="font-size: 10px;"></i>
+                                            {{ $book->category->name ?? 'Uncategorized' }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="col-6">
                                     <div class="text-label">Stock Tersedia</div>
                                     <div class="text-value mb-0">{{ $book->stock }} Pcs</div>
                                 </div>
@@ -302,13 +331,7 @@
 
                     <div class="divider"></div>
                     <div class="text-center d-flex justify-content-center align-items-center flex-wrap" style="gap: 10px;">
-                        <button class="btn btn-sm"
-                            style="background-color: #4a3525; color: white; border-radius: 5px; padding: 8px 20px;">
-                            <i class="far fa-bookmark mr-1"></i> Bookmark
-                        </button>
-
-                        {{-- TOMBOL CETAK UNTUK TRANSAKSI AKTIF --}}
-                        {{-- TOMBOL CETAK UNTUK TRANSAKSI AKTIF --}}
+                        {{-- TOMBOL 1: Cetak Bukti Pinjam (Saat status masih Aktif/Approve/Verifikasi) --}}
                         @if ($activePeminjaman)
                             <a href="{{ route('peminjaman.print', $activePeminjaman->id) }}" class="btn btn-sm"
                                 style="background-color: #4f46e5; color: white; border-radius: 5px; padding: 8px 20px; text-decoration: none;">
@@ -316,15 +339,16 @@
                             </a>
                         @endif
 
+                        {{-- TOMBOL 2: Cetak Struk Lunas (Setelah Buku Dikembalikan) --}}
                         @if ($lastReturned)
-                            <div class="text-center mt-3">
+                            <div class="text-center">
                                 <a href="{{ route('peminjaman.printed', $lastReturned->id) }}"
-                                    onclick="setTimeout(() => { location.reload(); }, 1500);" class="btn btn-sm"
+                                    onclick="setTimeout(() => { location.reload(); }, 2000);" class="btn btn-sm"
                                     style="background-color: #28a745; color: white; border-radius: 5px; padding: 8px 20px; text-decoration: none;">
                                     <i class="fas fa-file-pdf mr-1"></i> Download Struk Lunas (PDF)
                                 </a>
                                 <div class="text-muted mt-1" style="font-size: 11px;">
-                                    *File hanya bisa didownload 1x setelah lunas
+                                    *Klik untuk unduh struk resmi pengembalian
                                 </div>
                             </div>
                         @endif

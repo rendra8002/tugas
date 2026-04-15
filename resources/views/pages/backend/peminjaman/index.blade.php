@@ -162,21 +162,40 @@
                                                 @endif
                                             </td>
 
-                                            {{-- KOLOM DENDA --}}
-                                            <td class="text-nowrap"> {{-- Tambahkan class text-nowrap di sini --}}
+                                            {{-- KOLOM DENDA FIX FINAL --}}
+                                            <td class="text-nowrap">
+                                                @php
+                                                    // JURUS PAMUNGKAS: Tangkap nilai realtime ke variabel lokal dan paksa jadi Integer
+                                                    $nominalDenda = (int) $pj->denda_realtime;
+                                                @endphp
+
                                                 @if ($pj->status == 'returned')
-                                                    @if ($pj->total_denda > 0)
+                                                    {{-- BUKU SUDAH DIKEMBALIKAN --}}
+                                                    {{-- Kita ubah ceknya jadi != 0, mau minus atau plus tetap terbaca --}}
+                                                    @if ($pj->total_denda != 0)
                                                         <span class="badge badge-success"
                                                             style="font-size: 10px; background-color: #28a745; color: white; white-space: nowrap;">
-                                                            <i class="fas fa-check-double mr-1"></i> LUNAS
+                                                            {{-- Pakai fungsi abs() untuk membuang tanda minus secara otomatis --}}
+                                                            <i class="fas fa-check-double mr-1"></i> LUNAS (Rp
+                                                            {{ number_format(abs((int) $pj->total_denda), 0, ',', '.') }})
                                                         </span>
                                                     @else
                                                         <span class="text-muted">-</span>
                                                     @endif
+                                                @elseif (in_array($pj->status, ['pending', 'rejected']))
+                                                    {{-- BELUM DIPINJAM ATAU DITOLAK --}}
+                                                    <span class="text-muted">-</span>
                                                 @else
-                                                    @if ($pj->denda_realtime > 0)
+                                                    {{-- STATUS APPROVE ATAU VERIFIKASI (DENDA BERJALAN) --}}
+                                                    @php
+                                                        // Gunakan abs() untuk memastikan angka negatif dari DB tampil positif di layar
+                                                        $displayDenda = abs($nominalDenda);
+                                                    @endphp
+
+                                                    @if ($displayDenda > 0)
                                                         <span class="text-denda" style="white-space: nowrap;">
-                                                            Rp {{ number_format($pj->denda_realtime, 0, ',', '.') }}
+                                                            {{-- Menampilkan denda yang sudah di-positif-kan --}}
+                                                            Rp {{ number_format($displayDenda, 0, ',', '.') }}
                                                         </span>
                                                     @else
                                                         <span class="badge badge-light text-success"
@@ -187,7 +206,7 @@
                                                 @endif
                                             </td>
 
-                                            {{-- GANTI BAGIAN INI DI index.blade.php --}}
+                                            {{-- KOLOM STATUS --}}
                                             <td>
                                                 <span class="badge-custom badge-{{ $pj->status }}">
                                                     {{ strtoupper($pj->status) }}
@@ -208,7 +227,6 @@
                                                 <div class="d-flex justify-content-center align-items-center">
 
                                                     {{-- TOMBOL DETAIL (Semua Role Bisa Lihat) --}}
-                                                    {{-- Karena routenya belum ada, gue kasih link kosong '#' dulu --}}
                                                     <a href="{{ route('peminjaman.show', $pj->id) }}"
                                                         class="btn btn-sm btn-info mr-1" title="Detail">
                                                         <i class="fas fa-eye"></i>
@@ -230,15 +248,6 @@
                                                                 @csrf
                                                                 <button class="btn btn-sm btn-danger" title="Reject">
                                                                     <i class="fas fa-times"></i>
-                                                                </button>
-                                                            </form>
-                                                        @elseif($pj->status == 'approve')
-                                                            <form action="{{ route('peminjaman.return', $pj->id) }}"
-                                                                method="POST">
-                                                                @csrf
-                                                                <button class="btn btn-sm btn-warning px-2"
-                                                                    title="Confirm Return">
-                                                                    <i class="fas fa-undo mr-1"></i> Return
                                                                 </button>
                                                             </form>
                                                         @else

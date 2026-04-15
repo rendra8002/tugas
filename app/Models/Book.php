@@ -2,29 +2,42 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Models\Peminjaman;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Book extends Model
 {
     use HasFactory;
 
     protected $table = 'books';
-
-    // Pakai guarded kosong oke, tapi pastiin kolomnya bener
     protected $guarded = ['id'];
+    
+    // Tambahkan casting untuk stock
+    protected $casts = [
+        'stock' => 'integer',
+    ];
 
     /**
      * Accessor Status
-     * Logic: Jika stok 0, otomatis tampil 'not avaiable' di view
+     * Logic: Jika stok <= 0 (termasuk minus), tampil 'not avaiable'
      */
-    public function getStatusAttribute($value)
+    // public function getStatusAttribute($value)
+    // {
+    //     if ($this->stock <= 0) {
+    //         return 'not avaiable';
+    //     }
+    //     return $value;
+    // }
+
+    public function peminjamans(): HasMany
     {
-        // Jika stok di DB 0, paksa tampilkan not avaiable
-        if ($this->stock <= 0) {
-            return 'not avaiable';
-        }
-        // Jika stok ada, kembalikan nilai asli dari DB (avaiable / not avaiable)
-        return $value;
+        return $this->hasMany(Peminjaman::class, 'book_id', 'id');
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
     }
 }

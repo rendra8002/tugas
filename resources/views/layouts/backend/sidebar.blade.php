@@ -13,15 +13,15 @@
 
                 {{-- Home: Semua Role Bisa Lihat --}}
                 <li>
-                    <a class="nav-link" href="{{ route('backend.home.index') }}">
-                        <i class="far fa-square"></i> <span>Home</span>
+                    <a class="nav-link" href="{{ route('dashboard.admin') }}">
+                        <i class="fas fa-home"></i> <span>Home</span>
                     </a>
                 </li>
 
                 {{-- User: Semua Role Bisa Lihat --}}
                 <li>
                     <a class="nav-link" href="{{ route('user.index') }}">
-                        <i class="far fa-square"></i> <span>User</span>
+                        <i class="fas fa-users"></i> <span>User</span>
                     </a>
                 </li>
 
@@ -29,7 +29,12 @@
                 @if (Auth::user()->role === 'petugas')
                     <li>
                         <a class="nav-link" href="{{ route('book-admin.index') }}">
-                            <i class="far fa-square"></i> <span>Buku</span>
+                            <i class="fas fa-book"></i> <span>Buku</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="nav-link" href="{{ route('category-admin.index') }}">
+                            <i class="fas fa-book"></i> <span>Category</span>
                         </a>
                     </li>
                 @endif
@@ -37,13 +42,14 @@
                 {{-- Peminjaman: Semua Role Bisa Lihat --}}
                 <li>
                     <a class="nav-link" href="{{ route('peminjaman.index') }}">
-                        <i class="far fa-square"></i> <span>Peminjaman</span>
+                        <i class="fas fa-clipboard-list"></i> <span>Peminjaman</span>
                     </a>
                 </li>
 
+                {{-- Laporan: Semua Role Bisa Lihat --}}
                 <li>
                     <a class="nav-link" href="{{ route('reports.index') }}">
-                        <i class="far fa-square"></i> <span>Laporan</span>
+                        <i class="fas fa-file-alt"></i> <span>Laporan</span>
                     </a>
                 </li>
             </ul>

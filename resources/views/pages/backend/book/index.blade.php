@@ -125,6 +125,7 @@
                                         <th>#</th>
                                         <th>Cover</th>
                                         <th>Title, Author & Year</th>
+                                        <th>Category</th> {{-- TAMBAHKAN INI --}}
                                         <th>Stock</th>
                                         <th>Status</th>
                                         <th class="text-center">Action</th>
@@ -136,9 +137,35 @@
                                             {{-- Nomor urut otomatis nyesuain halaman (1, 2.. trus lanjut 8, 9..) --}}
                                             <td>{{ $books->firstItem() + $index }}</td>
                                             <td>
-                                                {{-- PERBAIKAN: Logika deteksi folder assets vs storage --}}
-                                                <img src="{{ $book->image ? (str_starts_with($book->image, 'assets') ? asset($book->image) : asset('storage/' . $book->image)) : 'https://via.placeholder.com/150x200?text=No+Cover' }}"
-                                                    class="book-cover-sm" alt="cover"
+                                                @php
+                                                    // 1. Gambar default kalau kosong
+                                                    $displayImage = 'https://via.placeholder.com/150x200?text=No+Cover';
+
+                                                    if (!empty($book->image)) {
+                                                        // 2. Baca dari DB (Link URL OpenLibrary / Internet)
+                                                        if (
+                                                            \Illuminate\Support\Str::startsWith($book->image, [
+                                                                'http://',
+                                                                'https://',
+                                                            ])
+                                                        ) {
+                                                            $displayImage = $book->image;
+                                                        }
+                                                        // 3. Baca dari Seeder Lokal (Folder public/assets/r/)
+                                                        elseif (
+                                                            \Illuminate\Support\Str::startsWith($book->image, 'assets')
+                                                        ) {
+                                                            $displayImage = asset($book->image);
+                                                        }
+                                                        // 4. Baca dari Storage (Hasil Upload Admin)
+                                                        else {
+                                                            $displayImage = asset('storage/' . $book->image);
+                                                        }
+                                                    }
+                                                @endphp
+
+                                                {{-- Menampilkan Gambar --}}
+                                                <img src="{{ $displayImage }}" class="book-cover-sm" alt="cover"
                                                     onerror="this.src='https://via.placeholder.com/150x200?text=Broken+Image'">
                                             </td>
                                             <td>
@@ -150,6 +177,13 @@
                                                         class="text-warning">{{ $book->year ?? '-' }}</span>
                                                 </div>
                                             </td>
+                                            {{-- TAMBAHKAN TD INI UNTUK CATEGORY --}}
+                                            <td>
+                                                <span class="badge badge-dark"
+                                                    style="background-color: #252531; color: #ccc; border: 1px solid #333;">
+                                                    {{ $book->category->name ?? 'Uncategorized' }}
+                                                </span>
+                                            </td>
                                             <td>
                                                 <span
                                                     class="{{ $book->stock <= 0 ? 'stock-danger' : ($book->stock <= 5 ? 'stock-warning' : '') }}">
@@ -159,22 +193,26 @@
                                             <td>
                                                 <span
                                                     class="badge-status {{ $book->status == 'avaiable' ? 'status-available' : 'status-unavailable' }}">
-                                                    {{ str_replace('not ', '', $book->status) }}
+                                                    {{ $book->status == 'avaiable' ? 'AVAILABLE' : 'NOT AVAILABLE' }}
                                                 </span>
                                             </td>
                                             <td class="text-center">
                                                 <div class="d-flex justify-content-center">
+                                                    {{-- TOMBOL EDIT --}}
                                                     <a href="{{ route('book-admin.edit', $book->id) }}"
-                                                        class="btn btn-sm btn-warning mr-1 shadow-sm">
+                                                        class="btn btn-sm btn-warning mr-1 shadow-sm" title="Edit Buku">
                                                         <i class="fas fa-edit"></i>
                                                     </a>
 
+                                                    {{-- TOMBOL DELETE (Selalu Aktif) --}}
                                                     <form action="{{ route('book-admin.destroy', $book->id) }}"
                                                         method="POST"
                                                         onsubmit="return confirm('Hapus buku ini dari perpustakaan?')">
                                                         @csrf
                                                         @method('DELETE')
-                                                        <button type="submit" class="btn btn-sm btn-danger shadow-sm">
+
+                                                        <button type="submit" class="btn btn-sm btn-danger shadow-sm"
+                                                            title="Hapus Buku">
                                                             <i class="fas fa-trash"></i>
                                                         </button>
                                                     </form>

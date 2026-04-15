@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\backend\BookBackendController;
+use App\Http\Controllers\backend\CategoryBackendController;
+use App\Http\Controllers\backend\HeroController;
 use App\Http\Controllers\backend\PeminjamanController;
 use App\Http\Controllers\Backend\ProfileController;
 use App\Http\Controllers\Backend\ReportController;
@@ -17,6 +19,10 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'index'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+
+    // TAMBAHKAN INI: Route untuk Register
+    Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
+    Route::post('/register', [AuthController::class, 'register'])->name('register.post');
 });
 
 // ==========================================
@@ -42,7 +48,7 @@ Route::middleware(['auth', 'anggota'])->group(function () {
     Route::get('/book/{id}', [BookController::class, 'show'])->name('book.show');
     Route::post('/book/{id}/borrow', [BookController::class, 'borrow'])->name('book.borrow');
     Route::post('/book/{id}/return', [BookController::class, 'returnBook'])->name('book.return');
-
+    Route::get('/search-books', [HomeFrontendController::class, 'searchBooks'])->name('books.search');
     // Route Profile Frontend
     Route::get('/user/profile', [ProfileFrontendController::class, 'index'])->name('frontend.profile.index');
     Route::post('/user/profile', [ProfileFrontendController::class, 'update'])->name('frontend.profile.update');
@@ -54,9 +60,7 @@ Route::middleware(['auth', 'anggota'])->group(function () {
 Route::middleware(['auth', 'admin.petugas'])->prefix('admin')->group(function () {
 
     // Dashboard
-    Route::get('/dashboard', function () {
-        return view('pages.backend.hero.index');
-    })->name('backend.home.index');
+    Route::get('/dashboard', [HeroController::class, 'index'])->name('dashboard.admin');
 
     // Manajemen Peminjaman
     Route::get('/peminjaman', [PeminjamanController::class, 'index'])->name('peminjaman.index');
@@ -64,12 +68,13 @@ Route::middleware(['auth', 'admin.petugas'])->prefix('admin')->group(function ()
     Route::post('/peminjaman/{id}/approve', [PeminjamanController::class, 'approve'])->name('peminjaman.approve');
     Route::post('/peminjaman/{id}/reject', [PeminjamanController::class, 'reject'])->name('peminjaman.reject');
     Route::post('/peminjaman/{id}/return', [PeminjamanController::class, 'returnBook'])->name('peminjaman.return');
-    
+
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     // Route untuk cetak PDF
     Route::get('/reports/print-pdf', [ReportController::class, 'printPdf'])->name('reports.print-pdf');
     // CRUD User
     Route::resource('user', UserController::class);
+    Route::resource('category-admin', CategoryBackendController::class);
 
     // CRUD Buku (Hanya Petugas)
     Route::middleware(['petugas.only'])->group(function () {

@@ -146,7 +146,7 @@
                         </tr>
                         <tr>
                             <th>Tanggal Kembali</th>
-                            <td>{{ $peminjaman->tanggal_kembali ? date('d F Y, H:i', strtotime($peminjaman->tanggal_kembali)) : 'Belum Kembali' }}
+                            <td>{{ $peminjaman->tanggal_kembali ? date('d F Y', strtotime($peminjaman->tanggal_kembali)) : 'Belum Kembali' }}
                             </td>
                         </tr>
                         <tr>
